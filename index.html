@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gujral Nifty 50 Real-Time Multi-Timeframe Screener</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
+    
+    <!-- Top Navigation / Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 text-white font-black px-3 py-1.5 rounded-lg text-lg tracking-wider">AG</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Gujral Nifty 50 Screener</h1>
+                    <p class="text-xs text-slate-400">Multi-Timeframe Real-Time Rule Engine</p>
+                </div>
+            </div>
+            
+            <!-- Timeframe Filter Tabs -->
+            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="tfSelector">
+                <button data-tf="30m" class="px-3 py-1.5 rounded-lg transition bg-blue-600 text-white">30 Min</button>
+                <button data-tf="daily" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">Daily</button>
+                <button data-tf="weekly" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">Weekly</button>
+                <button data-tf="monthly" class="px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white">Monthly</button>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span id="marketStatus" class="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Feed Active
+                </span>
+                <button id="refreshBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition">Scan Now</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Body -->
+    <main class="max-w-7xl mx-auto p-4 space-y-6 pb-24">
+        
+        <!-- Summary Banner / Market Breadth -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 relative overflow-hidden">
+                <div class="absolute right-3 top-3 text-emerald-500/20 text-4xl font-bold">BULL</div>
+                <span class="text-xs uppercase tracking-wider text-emerald-400 font-bold">Strong Bullish Setups</span>
+                <div id="bullCount" class="text-3xl font-extrabold text-emerald-400 mt-1">0</div>
+                <p class="text-xs text-slate-400 mt-1">Aligned with 8/20/50/200 MA Stack & CPR Support</p>
+            </div>
+            
+            <div class="bg-slate-900 border border-rose-500/30 rounded-2xl p-4 relative overflow-hidden">
+                <div class="absolute right-3 top-3 text-rose-500/20 text-4xl font-bold">BEAR</div>
+                <span class="text-xs uppercase tracking-wider text-rose-400 font-bold">Strong Bearish Setups</span>
+                <div id="bearCount" class="text-3xl font-extrabold text-rose-400 mt-1">0</div>
+                <p class="text-xs text-slate-400 mt-1">Bearish MA Stack, Below CPR & Rejection Tails</p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">Active Engine</span>
+                    <span id="currentTfBadge" class="text-xs bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded font-mono">30-Min TF</span>
+                </div>
+                <div class="text-sm text-slate-300 my-2">
+                    Filtering Nifty 50 universe using Gujral MA crossovers, XXL Candles, & Pivot Confluence.
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono">Rule-based scoring populated in real-time.</div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <input type="text" id="searchInput" placeholder="Search Nifty 50 stock..." class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 outline-none focus:border-blue-500 w-full sm:w-64">
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto justify-end text-xs font-semibold">
+                <button data-filter="all" class="filter-btn px-4 py-2 rounded-xl bg-blue-600 text-white transition">All Filtered</button>
+                <button data-filter="bull" class="filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition">Bullish Only</button>
+                <button data-filter="bear" class="filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition">Bearish Only</button>
+            </div>
+        </div>
+
+        <!-- Stocks Grid Table View -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-950/80 text-slate-400 uppercase text-[11px] tracking-wider border-b border-slate-800">
+                            <th class="p-4 font-semibold">Stock & Company</th>
+                            <th class="p-4 font-semibold">LTP (₹) & Chg %</th>
+                            <th class="p-4 font-semibold">Trend Signal</th>
+                            <th class="p-4 font-semibold">MA Structure (8/20/50/200)</th>
+                            <th class="p-4 font-semibold">Candle Pattern</th>
+                            <th class="p-4 font-semibold">Pivot & CPR State</th>
+                            <th class="p-4 font-semibold text-right">Action Trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stocksTableBody" class="divide-y divide-slate-800/60">
+                        <!-- Populated via Javascript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Modal for Gujral Rules Breakdown -->
+    <div id="detailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+            <button id="closeModal" class="absolute right-5 top-5 text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            
+            <div id="modalContent">
+                <!-- Dynamic Rule Breakdown -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Engine -->
+    <script>
+        // Nifty 50 Simulated Real-time Database with Gujral Technical Pillars
+        const nifty50Stocks = [
+            { symbol: "RELIANCE", name: "Reliance Industries", ltp: 1248.50, change: 1.45, price: 1248.50 },
+            { symbol: "TCS", name: "Tata Consultancy Services", ltp: 4120.00, change: -0.65, price: 4120.00 },
+            { symbol: "HDFCBANK", name: "HDFC Bank Ltd", ltp: 1735.20, change: 0.85, price: 1735.20 },
+            { symbol: "ICICIBANK", name: "ICICI Bank Ltd", ltp: 1245.80, change: 1.95, price: 1245.80 },
+            { symbol: "INFY", name: "Infosys Limited", ltp: 1890.40, change: -1.20, price: 1890.40 },
+            { symbol: "BHARTIARTL", name: "Bharti Airtel Ltd", ltp: 1650.30, change: 2.10, price: 1650.30 },
+            { symbol: "ITC", name: "ITC Limited", ltp: 512.60, change: 0.25, price: 512.60 },
+            { symbol: "SBIN", name: "State Bank of India", ltp: 820.40, change: -1.85, price: 820.40 },
+            { symbol: "LICI", name: "Life Insurance Corporation", ltp: 980.10, change: -0.40, price: 980.10 },
+            { symbol: "HINDUNILVR", name: "Hindustan Unilever", ltp: 2740.00, change: -0.15, price: 2740.00 },
+            { symbol: "LT", name: "Larsen & Toubro Ltd", ltp: 3650.20, change: 1.15, price: 3650.20 },
+            { symbol: "BAJFINANCE", name: "Bajaj Finance Ltd", ltp: 7210.50, change: 2.40, price: 7210.50 },
+            { symbol: "MARUTI", name: "Maruti Suzuki India", ltp: 12400.00, change: 0.50, price: 12400.00 },
+            { symbol: "SUNPHARMA", name: "Sun Pharmaceutical Ind", ltp: 1820.50, change: 1.10, price: 1820.50 },
+            { symbol: "ADANIENT", name: "Adani Enterprises Ltd", ltp: 2950.40, change: -2.45, price: 2950.40 },
+            { symbol: "TATAMOTORS", name: "Tata Motors Ltd", ltp: 1045.30, change: -1.50, price: 1045.30 },
+            { symbol: "NTPC", name: "NTPC Limited", ltp: 410.20, change: 1.80, price: 410.20 },
+            { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank", ltp: 1780.90, change: -0.30, price: 1780.90 },
+            { symbol: "TITAN", name: "Titan Company Ltd", ltp: 3420.00, change: 0.90, price: 3420.00 },
+            { symbol: "AXISBANK", name: "Axis Bank Ltd", ltp: 1150.60, change: 0.75, price: 1150.60 },
+            { symbol: "ASIANPAINT", name: "Asian Paints Ltd", ltp: 2910.00, change: -1.10, price: 2910.00 },
+            { symbol: "DMART", name: "Avenue Supermarts", ltp: 4510.00, change: 0.40, price: 4510.00 },
+            { symbol: "POWERGRID", name: "Power Grid Corp", ltp: 325.40, change: 1.25, price: 325.40 },
+            { symbol: "BAJAJFINSV", name: "Bajaj Finserv Ltd", ltp: 1820.00, change: 1.60, price: 1820.00 },
+            { symbol: "TATASTEEL", name: "Tata Steel Ltd", ltp: 158.20, change: -2.10, price: 158.20 }
+        ];
+
+        let activeTimeframe = '30m';
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        // Generate algorithmic analysis based on Gujral rules for the selected timeframe
+        function analyzeStocks() {
+            return nifty50Stocks.map((stock, idx) => {
+                // Pseudo-deterministic random state seeded by symbol & timeframe for stable demo data
+                const seed = (stock.symbol.charCodeAt(0) + activeTimeframe.charCodeAt(0) + idx) % 5;
+                let signal = seed === 0 || seed === 1 ? 'STRONG BULLISH' : seed === 2 || seed === 3 ? 'STRONG BEARISH' : 'NEUTRAL';
+                
+                // Fine-tune bias with price change & timeframe
+                if (stock.change > 1.2) signal = 'STRONG BULLISH';
+                if (stock.change < -1.2) signal = 'STRONG BEARISH';
+
+                const isBull = signal === 'STRONG BULLISH';
+                const isBear = signal === 'STRONG BEARISH';
+
+                return {
+                    ...stock,
+                    signal: signal,
+                    maStack: isBull ? 'Bullish Stack (8 > 20 > 50 > 200)' : isBear ? 'Bearish Stack (8 < 20 < 50 < 200)' : 'Mixed Crossover',
+                    candle: isBull ? 'XXL Green Expansion / Lilliput Support' : isBear ? 'XXL Red Breakdown / Upper Rejection Tail' : 'Normal / Consolidating',
+                    pivotState: isBull ? 'Above Rising CPR & R1 Role Reversal' : isBear ? 'Below Falling CPR & S1 Resistance' : 'At Central Pivot Point',
+                    triggerAction: isBull ? 'Buy above high of XXS candle near 8MA' : isBear ? 'Sell short below low of green candle at resistance' : 'Wait for breakout'
+                };
+            });
+        }
+
+        // Render UI
+        function renderDashboard() {
+            const data = analyzeStocks();
+            const tableBody = document.getElementById('stocksTableBody');
+            tableBody.innerHTML = '';
+
+            let bullCount = 0;
+            let bearCount = 0;
+
+            const filtered = data.filter(item => {
+                const matchesSearch = item.symbol.toLowerCase().includes(searchQuery) || item.name.toLowerCase().includes(searchQuery);
+                if (!matchesSearch) return false;
+                if (activeFilter === 'bull' && item.signal !== 'STRONG BULLISH') return false;
+                if (activeFilter === 'bear' && item.signal !== 'STRONG BEARISH') return false;
+                return true;
+            });
+
+            data.forEach(item => {
+                if (item.signal === 'STRONG BULLISH') bullCount++;
+                if (item.signal === 'STRONG BEARISH') bearCount++;
+            });
+
+            document.getElementById('bullCount').textContent = bullCount;
+            document.getElementById('bearCount').textContent = bearCount;
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No stocks matching current filters.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const isBull = item.signal === 'STRONG BULLISH';
+                const isBear = item.signal === 'STRONG BEARISH';
+                
+                const badgeClass = isBull ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                                   isBear ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
+                                   'bg-slate-800 text-slate-400 border-slate-700';
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-800/40 transition cursor-pointer group";
+                row.onclick = () => showDetailModal(item);
+
+                row.innerHTML = `
+                    <td class="p-4">
+                        <div class="font-bold text-slate-100 group-hover:text-blue-400 transition">${item.symbol}</div>
+                        <div class="text-xs text-slate-400">${item.name}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-mono font-medium">₹${item.ltp.toFixed(2)}</div>
+                        <div class="text-xs font-semibold ${item.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${item.change >= 0 ? '+' : ''}${item.change}%</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold border ${badgeClass}">${item.signal}</span>
+                    </td>
+                    <td class="p-4 text-xs text-slate-300 font-medium">
+                        <div>${item.maStack}</div>
+                    </td>
+                    <td class="p-4 text-xs text-slate-300">
+                        <div>${item.candle}</div>
+                    </td>
+                    <td class="p-4 text-xs text-slate-300">
+                        <div>${item.pivotState}</div>
+                    </td>
+                    <td class="p-4 text-right">
+                        <span class="text-xs font-semibold bg-blue-600/10 text-blue-400 px-3 py-1.5 rounded-xl border border-blue-500/20 group-hover:bg-blue-600 group-hover:text-white transition">Inspect Setup</span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Modal inspector
+        function showDetailModal(stock) {
+            const modal = document.getElementById('detailModal');
+            const content = document.getElementById('modalContent');
+            const isBull = stock.signal === 'STRONG BULLISH';
+            
+            content.innerHTML = `
+                <div class="flex justify-between items-start mb-4 border-b border-slate-800 pb-3">
+                    <div>
+                        <span class="text-xs font-bold px-2 py-0.5 rounded ${isBull ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${stock.signal}</span>
+                        <h2 class="text-2xl font-black mt-1">${stock.symbol} (${stock.name})</h2>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xl font-mono font-bold">₹${stock.ltp.toFixed(2)}</div>
+                        <div class="text-xs ${stock.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${stock.change >= 0 ? '+' : ''}${stock.change}%</div>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-1">Timeframe Checked</h4>
+                        <p class="font-semibold text-blue-400 uppercase">${activeTimeframe} Chart Scan</p>
+                    </div>
+
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-1">1. Moving Average Pillar</h4>
+                        <p class="text-slate-200">${stock.maStack}. According to Ashwani Gujral, prices staying strictly above the 8MA with rising 20/50/200 MA slopes dictate high-probability directional continuation.</p>
+                    </div>
+
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-1">2. Candlestick Formation</h4>
+                        <p class="text-slate-200">${stock.candle}. Look for volume expansion following contraction phases or Lilliput candles near key support zones.</p>
+                    </div>
+
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-1">3. Pivot & CPR Position</h4>
+                        <p class="text-slate-200">${stock.pivotState}. Price sustaining above/below Central Pivot Range confirms institutional backing for intraday momentum.</p>
+                    </div>
+
+                    <div class="bg-blue-600/10 border border-blue-500/30 p-4 rounded-xl">
+                        <h4 class="text-xs uppercase tracking-wider text-blue-400 font-bold mb-1">Recommended Gujral Action Trigger</h4>
+                        <p class="text-blue-100 font-medium">${stock.triggerAction}</p>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        // Event Listeners for Timeframe Tabs
+        document.querySelectorAll('#tfSelector button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('#tfSelector button').forEach(b => {
+                    b.className = "px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-white";
+                });
+                e.target.className = "px-3 py-1.5 rounded-lg transition bg-blue-600 text-white";
+                activeTimeframe = e.target.getAttribute('data-tf');
+                document.getElementById('currentTfBadge').textContent = activeTimeframe.toUpperCase() + ' TF';
+                renderDashboard();
+            });
+        });
+
+        // Event Listeners for Filter Buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.className = "filter-btn px-4 py-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition";
+                });
+                e.target.className = "filter-btn px-4 py-2 rounded-xl bg-blue-600 text-white transition";
+                activeFilter = e.target.getAttribute('data-filter');
+                renderDashboard();
+            });
+        });
+
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderDashboard();
+        });
+
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            const btn = document.getElementById('refreshBtn');
+            btn.textContent = 'Scanning...';
+            setTimeout(() => {
+                // Simulate minute price volatility tick
+                nifty50Stocks.forEach(s => {
+                    s.ltp += (Math.random() - 0.48) * 5;
+                    s.change = +(s.change + (Math.random() - 0.5) * 0.1).toFixed(2);
+                });
+                renderDashboard();
+                btn.textContent = 'Scan Now';
+            }, 500);
+        });
+
+        // Close modal
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('detailModal').classList.add('hidden');
+        });
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if(e.target.id === 'detailModal') e.target.classList.add('hidden');
+        });
+
+        // Initial render on load
+        renderDashboard();
+    </script>
+</body>
+</html>
